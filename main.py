@@ -3,10 +3,10 @@ import asyncio
 import aiohttp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from dotenv import load_dotenv
+
 
 # Load environment variables from .env file
-load_dotenv()
+
 
 # ============= CONFIGURATION =============
 # Load from environment variables for security
