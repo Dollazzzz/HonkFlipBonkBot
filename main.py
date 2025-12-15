@@ -3,10 +3,10 @@ import asyncio
 import aiohttp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
-
+load_dotenv()
 
 # ============= CONFIGURATION =============
 # Load from environment variables for security
@@ -37,12 +37,24 @@ async def get_token_data(session, pair_address=None, token_address=None):
                 data = await response.json()
                 print(f"Response data keys: {data.keys() if data else 'None'}")
                 
-                if pair_address and 'pair' in data and data['pair']:
-                    return data['pair']
+                # For pair_address endpoint
+                if pair_address:
+                    # Try 'pair' key first
+                    if 'pair' in data and data['pair']:
+                        print("Found data in 'pair' key")
+                        return data['pair']
+                    # Try 'pairs' key as fallback
+                    elif 'pairs' in data and data['pairs'] and len(data['pairs']) > 0:
+                        print("Found data in 'pairs' key")
+                        return data['pairs'][0]
+                
+                # For token_address endpoint
                 elif token_address and 'pairs' in data and data['pairs'] and len(data['pairs']) > 0:
                     # Get the pair with highest liquidity
                     pairs = data['pairs']
-                    return max(pairs, key=lambda x: float(x.get('liquidity', {}).get('usd', 0)))
+                    best_pair = max(pairs, key=lambda x: float(x.get('liquidity', {}).get('usd', 0)))
+                    print(f"Found {len(pairs)} pairs, using best one")
+                    return best_pair
                 
                 print(f"No valid data found in response")
                 return None
