@@ -7,8 +7,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 # ============= CONFIGURATION =============
 # Load from Replit Secrets for security
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-HONK_PAIR_ADDRESS = "3ag1Mj9AKz9FAkCQ6gAEhpLSX8B2pUbPdkb9iBsDLZNB"
-BONK_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+HONK_PAIR_ADDRESS = "BZivKpJWgQvrA3yYe3ubomufeGVouoYoUhosmBEdqF9y"
+BONK_TOKEN_ADDRESS = "5zpyutJu9ee6jFymDGoK7F6S5Kczqtc9FomP3ueKuyA9"
 
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN not set in Replit Secrets!")
