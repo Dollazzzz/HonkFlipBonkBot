@@ -3,15 +3,19 @@ import asyncio
 import aiohttp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ============= CONFIGURATION =============
-# Load from Replit Secrets for security
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+# Load from environment variables for security
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 HONK_PAIR_ADDRESS = "BZivKpJWgQvrA3yYe3ubomufeGVouoYoUhosmBEdqF9y"
 BONK_TOKEN_ADDRESS = "5zpyutJu9ee6jFymDGoK7F6S5Kczqtc9FomP3ueKuyA9"
 
 if not TELEGRAM_BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN not set in Replit Secrets!")
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable not set!")
 # =========================================
 
 async def get_token_data(session, pair_address=None, token_address=None):
@@ -24,19 +28,31 @@ async def get_token_data(session, pair_address=None, token_address=None):
         else:
             return None
         
+        print(f"Fetching from: {url}")
+        
         async with session.get(url) as response:
+            print(f"Response status: {response.status}")
+            
             if response.status == 200:
                 data = await response.json()
-                if pair_address and 'pair' in data:
+                print(f"Response data keys: {data.keys() if data else 'None'}")
+                
+                if pair_address and 'pair' in data and data['pair']:
                     return data['pair']
-                elif token_address and 'pairs' in data and len(data['pairs']) > 0:
+                elif token_address and 'pairs' in data and data['pairs'] and len(data['pairs']) > 0:
                     # Get the pair with highest liquidity
                     pairs = data['pairs']
                     return max(pairs, key=lambda x: float(x.get('liquidity', {}).get('usd', 0)))
+                
+                print(f"No valid data found in response")
                 return None
-            return None
+            else:
+                print(f"Bad response status: {response.status}")
+                return None
     except Exception as e:
         print(f"Error fetching data: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def format_number(num):
@@ -74,7 +90,7 @@ def create_flip_message(honk_mc, bonk_mc, honk_ath, bonk_ath):
     bar_ath = '█' * filled_ath + '░' * (bar_length - filled_ath)
     
     message = f"""
-🎯 FLIP THE BONK GOAL (LIVE)
+🎯 HONK FLIP THE BONK GOAL (LIVE)
 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃      $HONK   │  PROGRESS  │  $BONK      ┃
@@ -120,6 +136,10 @@ async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         honk_ath = float(honk_data.get('fdv', honk_mc))
         bonk_ath = float(bonk_data.get('fdv', bonk_mc))
         
+        # For ATH, we might want to track historical highs
+        # For now using current FDV as a placeholder
+        # You can enhance this by storing historical data
+        
         if honk_mc == 0 or bonk_mc == 0:
             await update.message.reply_text("❌ Unable to retrieve market cap data.")
             return
@@ -131,27 +151,27 @@ async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
     welcome_message = """
-🎺 Welcome to the HONK Flip Tracker! 🎺
+🎺 Welcome to the HONK Flip BONK Tracker! 🎺
 
 Commands:
 /flip - Check progress toward flipping $BONK
 /commands - Show all available commands
 /start - Show this message
 
-Let's flip that BONK! 🚀
+Let's flip the BONK! 🚀
 """
     await update.message.reply_text(welcome_message)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command"""
     help_message = """
-📖 HONK Flip Tracker Help
+📖 HONK Flip BONK Tracker Help
 
 Available Commands:
-- /flip - See current progress toward flipping BONK
-- /commands - Show all available commands
-- /start - Welcome message
-- /help - This help message
+• /flip - See current progress toward flipping BONK
+• /commands - Show all available commands
+• /start - Welcome message
+• /help - This help message
 
 The bot tracks both Market Cap and ATH comparisons!
 """
@@ -160,7 +180,7 @@ The bot tracks both Market Cap and ATH comparisons!
 async def commands_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /commands command"""
     commands_message = """
-🎺 HONK Bot Commands 🎺
+🎺 HONK Flip BONK Bot Commands 🎺
 
 📊 /flip
    → Check live progress toward flipping $BONK
