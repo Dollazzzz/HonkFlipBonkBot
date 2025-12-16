@@ -96,20 +96,20 @@ def create_flip_message(honk_mc: float, bonk_mc: float, honk_ath: float, bonk_at
     ath_gap = bonk_ath - honk_ath
 
     return (
-        "🎯 HONK vs BONK — Flip Tracker\n\n"
-        "Market Cap\n"
-        f"HONK: {format_number(honk_mc)}\n"
-        f"BONK: {format_number(bonk_mc)}\n"
+        "🎯 HONK vs BONK Flip Tracker\n\n"
+        "Market Cap-\n"
+        f"$HONK: {format_number(honk_mc)}\n"
+        f"$BONK: {format_number(bonk_mc)}\n"
         f"Progress: {mc_progress:.2f}%\n"
         f"Distance to flip: {mc_distance:.2f}×\n"
         f"Gap: {format_number(mc_gap)}\n\n"
-        "ATH\n"
-        f"HONK: {format_ath(honk_ath)}\n"
-        f"BONK: {format_ath(bonk_ath)}\n"
+        "ATH-\n"
+        f"$HONK: {format_ath(honk_ath)}\n"
+        f"$BONK: {format_ath(bonk_ath)}\n"
         f"Progress: {ath_progress:.2f}%\n"
         f"Distance: {ath_distance:.2f}×\n"
         f"Gap: {format_ath(ath_gap)}\n\n"
-        "🚀 The HONK climb continues"
+        "🚀 The HONK takeover continues"
     )
 
 
