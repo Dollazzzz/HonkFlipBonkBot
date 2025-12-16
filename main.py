@@ -4,16 +4,11 @@ import aiohttp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-
-
-
 # ============= CONFIGURATION =============
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # MUST be Dexscreener *PAIR IDs* (the string after /solana/ on the pair page)
-# Example:
-# https://dexscreener.com/solana/<PAIR_ID>
 HONK_PAIR_ID = "BZivKpJWgQvrA3yYe3ubomufeGVouoYoUhosmBEdqF9y"
 BONK_PAIR_ID = "5zpyutJu9ee6jFymDGoK7F6S5Kczqtc9FomP3ueKuyA9"
 
@@ -29,13 +24,12 @@ _cached_message = None
 # =========================================
 
 
-async def get_pair_data(session: aiohttp.ClientSession, pair_id: str) -> dict | None:
+async def get_pair_data(session: aiohttp.ClientSession, pair_id: str):
     """Fetch pair data from DexScreener by pair ID"""
     url = f"https://api.dexscreener.com/latest/dex/pairs/solana/{pair_id}"
     try:
         async with session.get(url, headers={"User-Agent": "honk-flip-bot/1.0"}) as response:
             if response.status != 200:
-                # Helpful debug in logs
                 text = await response.text()
                 print(f"[Dexscreener] HTTP {response.status} for {url}: {text[:250]}")
                 return None
@@ -65,48 +59,55 @@ def pick_mcap(pair: dict) -> float:
 
 
 def format_number(num: float) -> str:
+    # Always show like $12,345,678
     return f"${num:,.0f}"
 
 
 def format_ath(num: float) -> str:
+    # More robust formatting
     if num >= 1_000_000_000:
-        return f"${num/1_000_000_000:.1f}B"
+        return f"${num/1_000_000_000:.2f}B"
     elif num >= 1_000_000:
-        return f"${num/1_000_000:.1f}M"
-    else:
+        return f"${num/1_000_000:.2f}M"
+    elif num >= 1_000:
         return f"${num:,.0f}"
+    else:
+        return f"${num:.2f}"
+
+
+def clamp(x: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, x))
 
 
 def create_flip_message(honk_mc: float, bonk_mc: float, honk_ath: float, bonk_ath: float) -> str:
     # Avoid division by zero
-    if bonk_mc <= 0:
-        bonk_mc = 1
-    if bonk_ath <= 0:
-        bonk_ath = 1
-    if honk_mc <= 0:
-        honk_mc = 1
-    if honk_ath <= 0:
-        honk_ath = 1
+    bonk_mc = bonk_mc if bonk_mc > 0 else 1.0
+    bonk_ath = bonk_ath if bonk_ath > 0 else 1.0
+    honk_mc = honk_mc if honk_mc > 0 else 1.0
+    honk_ath = honk_ath if honk_ath > 0 else 1.0
 
     # Calculate progress percentages
     mc_progress = (honk_mc / bonk_mc) * 100
-    mc_remaining = 100 - mc_progress
-    mc_multiplier = bonk_mc / honk_mc
-
     ath_progress = (honk_ath / bonk_ath) * 100
-    ath_remaining = 100 - ath_progress
-    ath_multiplier = bonk_ath / honk_ath
+
+    # These can exceed 100% if HONK flips — clamp for clean bars
+    mc_progress_for_bar = clamp(mc_progress, 0, 100)
+    ath_progress_for_bar = clamp(ath_progress, 0, 100)
+
+    mc_remaining = max(0.0, 100 - mc_progress)
+    ath_remaining = max(0.0, 100 - ath_progress)
+
+    mc_multiplier = bonk_mc / honk_mc if honk_mc else 0
+    ath_multiplier = bonk_ath / honk_ath if honk_ath else 0
 
     # Progress bars
     bar_length = 20
+    filled_mc = int(bar_length * mc_progress_for_bar / 100)
+    filled_ath = int(bar_length * ath_progress_for_bar / 100)
 
-    filled_mc = max(0, min(bar_length, int(bar_length * mc_progress / 100)))
     bar_mc = "█" * filled_mc + "░" * (bar_length - filled_mc)
-
-    filled_ath = max(0, min(bar_length, int(bar_length * ath_progress / 100)))
     bar_ath = "█" * filled_ath + "░" * (bar_length - filled_ath)
 
-    # Use a code block so Telegram preserves alignment
     return f"""```text
 🎯 FLIP THE BONK GOAL (LIVE)
 
@@ -142,11 +143,6 @@ async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(_cached_message, parse_mode="Markdown")
         return
 
-    # Quick guard so you don’t forget to paste IDs
-    if "PASTE_" in HONK_PAIR_ID or "PASTE_" in BONK_PAIR_ID:
-        await update.message.reply_text("❌ Paste your HONK_PAIR_ID and BONK_PAIR_ID into the code first.")
-        return
-
     await update.message.reply_text("🔍 Fetching latest market data…")
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
@@ -160,7 +156,7 @@ async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         honk_mc = pick_mcap(honk_pair)
         bonk_mc = pick_mcap(bonk_pair)
 
-        # Your original code used FDV as a stand-in; keep that behavior
+        # FDV as proxy (your original behavior)
         honk_ath = float(honk_pair.get("fdv") or honk_mc or 0)
         bonk_ath = float(bonk_pair.get("fdv") or bonk_mc or 0)
 
@@ -229,8 +225,12 @@ def main():
     application.add_handler(CommandHandler("commands", commands_command))
 
     print("✅ Bot is HONKing! Press Ctrl+C to stop.")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True
+    )
 
 
 if __name__ == "__main__":
     main()
+
