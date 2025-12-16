@@ -80,57 +80,38 @@ def clamp(x: float, lo: float, hi: float) -> float:
 
 
 def create_flip_message(honk_mc: float, bonk_mc: float, honk_ath: float, bonk_ath: float) -> str:
-    # Avoid division by zero
-    bonk_mc = bonk_mc if bonk_mc > 0 else 1.0
-    bonk_ath = bonk_ath if bonk_ath > 0 else 1.0
+    # Safety guards
     honk_mc = honk_mc if honk_mc > 0 else 1.0
+    bonk_mc = bonk_mc if bonk_mc > 0 else 1.0
     honk_ath = honk_ath if honk_ath > 0 else 1.0
+    bonk_ath = bonk_ath if bonk_ath > 0 else 1.0
 
-    # Calculate progress percentages
     mc_progress = (honk_mc / bonk_mc) * 100
     ath_progress = (honk_ath / bonk_ath) * 100
 
-    # These can exceed 100% if HONK flips — clamp for clean bars
-    mc_progress_for_bar = clamp(mc_progress, 0, 100)
-    ath_progress_for_bar = clamp(ath_progress, 0, 100)
+    mc_distance = bonk_mc / honk_mc
+    ath_distance = bonk_ath / honk_ath
 
-    mc_remaining = max(0.0, 100 - mc_progress)
-    ath_remaining = max(0.0, 100 - ath_progress)
+    mc_gap = bonk_mc - honk_mc
+    ath_gap = bonk_ath - honk_ath
 
-    mc_multiplier = bonk_mc / honk_mc if honk_mc else 0
-    ath_multiplier = bonk_ath / honk_ath if honk_ath else 0
+    return (
+        "🎯 HONK vs BONK — Flip Tracker\n\n"
+        "Market Cap\n"
+        f"HONK: {format_number(honk_mc)}\n"
+        f"BONK: {format_number(bonk_mc)}\n"
+        f"Progress: {mc_progress:.2f}%\n"
+        f"Distance to flip: {mc_distance:.2f}×\n"
+        f"Gap: {format_number(mc_gap)}\n\n"
+        "ATH\n"
+        f"HONK: {format_ath(honk_ath)}\n"
+        f"BONK: {format_ath(bonk_ath)}\n"
+        f"Progress: {ath_progress:.2f}%\n"
+        f"Distance: {ath_distance:.2f}×\n"
+        f"Gap: {format_ath(ath_gap)}\n\n"
+        "🚀 The HONK climb continues"
+    )
 
-    # Progress bars
-    bar_length = 20
-    filled_mc = int(bar_length * mc_progress_for_bar / 100)
-    filled_ath = int(bar_length * ath_progress_for_bar / 100)
-
-    bar_mc = "█" * filled_mc + "░" * (bar_length - filled_mc)
-    bar_ath = "█" * filled_ath + "░" * (bar_length - filled_ath)
-
-    return f"""```text
-🎯 FLIP THE BONK GOAL (LIVE)
-
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃      $HONK   │  PROGRESS  │  $BONK      ┃
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ MC   │ {format_number(honk_mc)}  │  ✖️{mc_multiplier:.2f}  │ {format_number(bonk_mc)} ┃
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ ATH  │ {format_ath(honk_ath)}  │  ✖️{ath_multiplier:.2f}  │ {format_ath(bonk_ath)} ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-📊 PROGRESS BEFORE THE FLIPPENING
-
-Market Cap Progress:
-{bar_mc}
-{mc_progress:.2f}% Complete  |  {mc_remaining:.2f}% To Go
-
-ATH Progress:
-{bar_ath}
-{ath_progress:.2f}% Complete  |  {ath_remaining:.2f}% To Go
-
-🚀 Keep HONKing! 🚀
-```"""
 
 
 async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -175,7 +156,7 @@ async def flip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_message = (
-        "🎺 Welcome to the HONK Flip BONK Tracker! 🎺\n\n"
+        " Welcome to the HONK Flip BONK Tracker! \n\n"
         "Commands:\n"
         "/flip - Check progress toward flipping $BONK\n"
         "/commands - Show all available commands\n"
@@ -187,7 +168,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_message = (
-        "📖 HONK Flip BONK Tracker Help\n\n"
+        " HONK Flip BONK Tracker Help\n\n"
         "Available Commands:\n"
         "• /flip - See current progress toward flipping BONK\n"
         "• /commands - Show all available commands\n"
@@ -200,7 +181,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def commands_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     commands_message = (
-        "🎺 HONK Flip BONK Bot Commands 🎺\n\n"
+        " HONK Flip BONK Bot Commands \n\n"
         "📊 /flip\n"
         "→ Check live progress toward flipping $BONK\n\n"
         "ℹ️ /start\n"
